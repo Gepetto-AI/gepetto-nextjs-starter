@@ -1,137 +1,187 @@
-// The tools of the studio, shared by the page and the server. Each one is one call to @gepetto/sdk (see lib/render.ts).
+// The eight tools of the studio, and everything the panel lets you choose.
+// What each tool sends to Gepetto is in lib/sdk-calls.ts.
+import type { Lists, Option } from "./gepetto";
 
-export type ToolId = 'enhance' | 'declutter' | 'furnish' | 'sunshine' | 'creative-redesign' | 'walls' | 'floor' | 'upscale';
+export type ToolId = "enhance" | "declutter" | "furnish" | "sunshine" | "restyle" | "walls" | "floor" | "upscale";
 
-export const TOOL_IDS: ToolId[] = ['enhance', 'declutter', 'furnish', 'sunshine', 'creative-redesign', 'walls', 'floor', 'upscale'];
-
-export const TOOL_LABELS: Record<ToolId, string> = {
-  enhance: 'Enhance',
-  declutter: 'Declutter',
-  furnish: 'Furnish',
-  sunshine: 'Blue sky',
-  'creative-redesign': 'Restyle',
-  walls: 'Repaint walls',
-  floor: 'New floor',
-  upscale: 'Upscale',
-};
+/** The tools, in the order of the panel. */
+export const TOOLS: { id: ToolId; name: string }[] = [
+  { id: "enhance", name: "Enhance" },
+  { id: "declutter", name: "Declutter" },
+  { id: "furnish", name: "Furnish" },
+  { id: "sunshine", name: "Blue sky" },
+  { id: "restyle", name: "Restyle" },
+  { id: "walls", name: "Repaint walls" },
+  { id: "floor", name: "New floor" },
+  { id: "upscale", name: "Upscale" },
+];
 
 /** Everything the panel lets you choose. One object for all the tools: switching tools keeps your choices. */
-export interface Settings {
+export interface Choices {
+  // Enhance
   straighten: boolean;
-  declutterMode: 'room' | 'erase';
+
+  // Declutter: the whole room, or only what is painted
+  declutterMode: "room" | "erase";
   keepKitchen: boolean;
   keepBathroom: boolean;
   keepFireplace: boolean;
-  furnishMode: 'room' | 'zone';
+
+  // Furnish: the whole room, or a painted zone (as a room, or with one piece of furniture)
+  furnishMode: "room" | "zone";
   roomId: string;
-  /** With a mask: `room:<id>` (the zone furnished as a room) or `piece:<id>` (one piece of furniture). */
-  zoneTarget: string;
+  zoneAs: "room" | "furniture";
+  zoneRoomId: string;
+  furnitureId: string;
+
+  // Furnish and Restyle
   styleId: string;
+
+  // Blue sky
   skyId: string;
   lightProjection: boolean;
   poolLight: boolean;
   addLeafs: boolean;
-  redesignRoomId: string;
+
+  // Restyle
+  restyleRoomId: string;
   preserveFloor: boolean;
+
+  // Repaint walls
   wallType: string;
   customWallColor: string;
   preserveCeiling: boolean;
+
+  // New floor
   floorType: string;
   includeBaseboard: boolean;
-  resolution: '2k' | '4k';
+
+  // Upscale
+  resolution: "2k" | "4k";
 }
 
-/** What the page sends to POST /api/render. */
-export interface RenderRequest {
-  tool: ToolId;
-  url: string;
-  /** The painted zone, as a data URL (canvas.toDataURL('image/png')). */
-  mask?: string;
-  params: Record<string, string | boolean>;
-  /** One per click: a retry of the same click never renders, nor bills, twice. */
-  idempotencyKey: string;
+/** The choices the studio opens with: the first render is one click away. */
+export function defaultChoices(lists: Lists | null): Choices {
+  return {
+    straighten: false,
+
+    declutterMode: "room",
+    keepKitchen: false,
+    keepBathroom: false,
+    keepFireplace: false,
+
+    furnishMode: "room",
+    roomId: pick(lists?.autoRooms, "living_room"),
+    zoneAs: "room",
+    zoneRoomId: pick(lists?.zoneRooms, "living_room"),
+    furnitureId: pick(lists?.furniture, "sofa"),
+
+    styleId: pick(lists?.styles, "scandinave"),
+
+    skyId: pick(lists?.skies, "sunny"),
+    lightProjection: false,
+    poolLight: false,
+    addLeafs: false,
+
+    restyleRoomId: pick(lists?.allRooms, "living_room"),
+    preserveFloor: false,
+
+    wallType: pick(lists?.walls, "egg_shell"),
+    customWallColor: "",
+    preserveCeiling: false,
+
+    floorType: pick(lists?.floors, "parquet"),
+    includeBaseboard: false,
+
+    resolution: "4k",
+  };
 }
 
-/** Does this tool, with these settings, need a painted zone? */
-export function needsMask(tool: ToolId, s: Settings): boolean {
-  return (tool === 'declutter' && s.declutterMode === 'erase') || (tool === 'furnish' && s.furnishMode === 'zone');
+/** The preferred id if the API lists it, else the first one of the list. */
+function pick(options: Option[] | undefined, preferred: string): string {
+  if (!options || options.length === 0) return preferred;
+  const found = options.find((option) => option.id === preferred);
+  return found ? found.id : options[0].id;
 }
 
-/** The parameters sent to the API for a tool (only those that apply). */
-export function paramsFor(tool: ToolId, s: Settings): Record<string, string | boolean> {
-  const on = (o: Record<string, boolean>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v));
-  switch (tool) {
-    case 'enhance':
-      return on({ straighten: s.straighten });
-    case 'declutter':
-      return s.declutterMode === 'erase' ? {} : on({ keepKitchen: s.keepKitchen, keepBathroom: s.keepBathroom, keepFireplace: s.keepFireplace });
-    case 'furnish': {
-      if (s.furnishMode === 'room') return { roomId: s.roomId, styleId: s.styleId };
-      const [kind, id] = s.zoneTarget.split(':');
-      return kind === 'piece' ? { furnitureId: id, styleId: s.styleId } : { roomId: id, styleId: s.styleId };
-    }
-    case 'sunshine':
-      return { skyId: s.skyId, ...on({ lightProjection: s.lightProjection, poolLight: s.poolLight, addLeafs: s.addLeafs }) };
-    case 'creative-redesign':
-      return { roomId: s.redesignRoomId, styleId: s.styleId, ...on({ preserveFloor: s.preserveFloor }) };
-    case 'walls':
-      return {
-        wallType: s.wallType,
-        ...(s.wallType === 'custom' ? { customWallColor: s.customWallColor } : {}),
-        ...on({ preserveCeiling: s.preserveCeiling }),
-      };
-    case 'floor':
-      return { floorType: s.floorType, ...on({ includeBaseboard: s.includeBaseboard }) };
-    case 'upscale':
-      return { resolution: s.resolution };
-  }
+/** Does the tool, with these choices, work on a painted zone? */
+export function needsMask(tool: ToolId, choices: Choices): boolean {
+  if (tool === "declutter") return choices.declutterMode === "erase";
+  if (tool === "furnish") return choices.furnishMode === "zone";
+  return false;
 }
 
 /** The label of the main button: what you get. */
-export function actionLabel(tool: ToolId, s: Settings): string {
+export function buttonLabel(tool: ToolId, choices: Choices): string {
   switch (tool) {
-    case 'enhance': return 'Enhance the photo';
-    case 'declutter': return s.declutterMode === 'erase' ? 'Erase the painted objects' : 'Empty the room';
-    case 'furnish': return s.furnishMode === 'zone' ? 'Furnish the zone' : 'Furnish the room';
-    case 'sunshine': return 'Add a blue sky';
-    case 'creative-redesign': return 'Restyle the room';
-    case 'walls': return 'Repaint the walls';
-    case 'floor': return 'Change the floor';
-    case 'upscale': return `Upscale to ${s.resolution.toUpperCase()}`;
+    case "enhance":
+      return "Enhance the photo";
+    case "declutter":
+      return choices.declutterMode === "erase" ? "Erase the painted objects" : "Empty the room";
+    case "furnish":
+      return choices.furnishMode === "zone" ? "Furnish the zone" : "Furnish the room";
+    case "sunshine":
+      return "Add a blue sky";
+    case "restyle":
+      return "Restyle the room";
+    case "walls":
+      return "Repaint the walls";
+    case "floor":
+      return "Change the floor";
+    case "upscale":
+      return `Upscale to ${choices.resolution.toUpperCase()}`;
   }
 }
 
-/** The title shown while the image is being made. */
-export function progressLabel(tool: ToolId, s: Settings): string {
+/** The title of the card shown while the image is being made. */
+export function workingTitle(tool: ToolId, choices: Choices): string {
   switch (tool) {
-    case 'enhance': return 'Enhancing the photo';
-    case 'declutter': return s.declutterMode === 'erase' ? 'Erasing the objects' : 'Emptying the room';
-    case 'furnish': return s.furnishMode === 'zone' ? 'Furnishing the zone' : 'Furnishing the room';
-    case 'sunshine': return 'Adding a blue sky';
-    case 'creative-redesign': return 'Restyling the room';
-    case 'walls': return 'Repainting the walls';
-    case 'floor': return 'Changing the floor';
-    case 'upscale': return 'Upscaling';
+    case "enhance":
+      return "Enhancing the photo";
+    case "declutter":
+      return choices.declutterMode === "erase" ? "Erasing the objects" : "Emptying the room";
+    case "furnish":
+      return choices.furnishMode === "zone" ? "Furnishing the zone" : "Furnishing the room";
+    case "sunshine":
+      return "Adding a blue sky";
+    case "restyle":
+      return "Restyling the room";
+    case "walls":
+      return "Repainting the walls";
+    case "floor":
+      return "Changing the floor";
+    case "upscale":
+      return "Upscaling";
   }
 }
 
-const METHODS: Record<ToolId, string> = {
-  enhance: 'enhance',
-  declutter: 'declutter',
-  furnish: 'furnish',
-  sunshine: 'sunshine',
-  'creative-redesign': 'creativeRedesign',
-  walls: 'surfaces',
-  floor: 'surfaces',
-  upscale: 'upscale',
-};
+/** The line under that title: what was chosen, by name. */
+export function workingDetail(tool: ToolId, choices: Choices, lists: Lists | null): string {
+  const style = nameOf(lists?.styles, choices.styleId);
 
-/** The SDK call that the server makes for this request, as shown in "The SDK call". */
-export function sdkCall(tool: ToolId, params: Record<string, string | boolean>, withMask: boolean): string {
-  const lines = ['  url: photo.url,'];
-  if (withMask) lines.push("  mask: maskDataUrl, // canvas.toDataURL('image/png')");
-  if (tool === 'walls') lines.push("  surface: 'walls',");
-  if (tool === 'floor') lines.push("  surface: 'floor',");
-  for (const [k, v] of Object.entries(params)) lines.push(`  ${k}: ${typeof v === 'string' ? `'${v}'` : v},`);
-  return `const job = await gepetto.${METHODS[tool]}({\n${lines.join('\n')}\n});`;
+  switch (tool) {
+    case "enhance":
+      return choices.straighten ? "Light, colours and verticals" : "Light and colours";
+    case "declutter":
+      return choices.declutterMode === "erase" ? "The painted objects" : "The whole room";
+    case "furnish":
+      if (choices.furnishMode === "room") return `${nameOf(lists?.autoRooms, choices.roomId)} · ${style}`;
+      if (choices.zoneAs === "furniture") return `${nameOf(lists?.furniture, choices.furnitureId)} · ${style}`;
+      return `${nameOf(lists?.zoneRooms, choices.zoneRoomId)} · ${style}`;
+    case "sunshine":
+      return nameOf(lists?.skies, choices.skyId);
+    case "restyle":
+      return `${nameOf(lists?.allRooms, choices.restyleRoomId)} · ${style}`;
+    case "walls":
+      return choices.wallType === "custom" ? choices.customWallColor : nameOf(lists?.walls, choices.wallType);
+    case "floor":
+      return nameOf(lists?.floors, choices.floorType);
+    case "upscale":
+      return choices.resolution.toUpperCase();
+  }
+}
+
+function nameOf(options: Option[] | undefined, id: string): string {
+  const found = options?.find((option) => option.id === id);
+  return found ? found.name : id;
 }

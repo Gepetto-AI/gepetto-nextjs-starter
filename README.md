@@ -25,25 +25,33 @@ Already have a key? Put it in `.env` as `GEPETTO_API_KEY` (see `.env.example`).
 
 ## How it works
 
-The page never sees the API key. It calls the app's own routes, which call Gepetto with the SDK:
+The page never sees the API key. It calls the app's own routes, which call Gepetto with the SDK.
+
+What happens when you click the main button:
+
+1. [`components/studio.tsx`](components/studio.tsx), `makeImage()`: turns the painted zone into a mask, if the tool uses one.
+2. [`lib/sdk-calls.ts`](lib/sdk-calls.ts): builds the SDK call for the tool and your choices. **Start here**: every tool is there, as one call.
+3. [`lib/studio-api.ts`](lib/studio-api.ts): sends it to the server, with a new idempotency key.
+4. [`app/api/render/route.ts`](app/api/render/route.ts) and [`lib/render.ts`](lib/render.ts): the server makes the call with `@gepetto/sdk` and answers when the image is ready.
+5. Back in `makeImage()`: the result is shown next to the photo.
+
+The other files:
 
 | File | What it does |
 | --- | --- |
-| [`lib/render.ts`](lib/render.ts) | **Every tool as one SDK call.** Start here. |
+| [`lib/tools.ts`](lib/tools.ts) | The eight tools and everything the panel lets you choose |
 | [`lib/gepetto.ts`](lib/gepetto.ts) | The client, the lists of ids (rooms, styles, skies...), the account, the latest renders |
-| [`app/api/render/route.ts`](app/api/render/route.ts) | `POST /api/render`: one render, waits for the image |
 | [`app/api/bootstrap/route.ts`](app/api/bootstrap/route.ts) | What the page needs to start |
 | [`app/api/upload/route.ts`](app/api/upload/route.ts) | Your own photos (optional, see below) |
-| [`lib/tools.ts`](lib/tools.ts) | The tools, their options, and the SDK call shown in the panel |
 | [`components/painter.tsx`](components/painter.tsx) | Paint a zone, turned into a mask |
-| [`components/`](components) | The studio itself |
+| [`components/`](components) | The rest of the studio: one file per part of the screen |
 
 A few things worth copying:
 
 - **Each click sends its own idempotency key**: a retry of the same click never renders, nor bills, twice.
 - **Masks are sent in base64.** What you paint becomes a black and white PNG (`canvas.toDataURL('image/png')`, a few dozen KB), sent with the request: nothing to host.
 - **The ids come from the API** (`GET /rooms`, `/styles`...), cached for an hour, so new rooms and styles show up by themselves.
-- **"The SDK call"** in the panel shows the exact call the server makes for the current settings.
+- **"The SDK call"** in the panel shows the exact call the server makes for the current choices.
 
 ## Your own photos
 

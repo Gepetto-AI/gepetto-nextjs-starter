@@ -1,5 +1,5 @@
-import { connection } from 'next/server';
-import { errorResponse, getAccount, getLists, getRecent, isConfigured, uploadsEnabled } from '@/lib/gepetto';
+import { connection } from "next/server";
+import { errorResponse, getAccount, getLists, getRecent, isConfigured, uploadsEnabled } from "@/lib/gepetto";
 
 /** Everything the page needs to start: the lists of ids, the account, the latest renders. */
 export async function GET() {

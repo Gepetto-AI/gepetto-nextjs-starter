@@ -1,27 +1,39 @@
-// Server side only: the Gepetto client, the lists of ids, the account. The API key never reaches the browser.
-import { cacheLife } from 'next/cache';
-import { Gepetto, GepettoError } from '@gepetto/sdk';
+// Server side only: the Gepetto client, the lists of ids, the account, the latest renders.
+// The API key is read here, on the server, and never reaches the browser.
+import { cacheLife } from "next/cache";
+import { Gepetto, GepettoError } from "@gepetto/sdk";
 
 let client: Gepetto | null = null;
 
-/** The client, created once. Reads GEPETTO_API_KEY (`npx @gepetto/cli init` writes it to .env). */
+/** The client, created on first use. It reads GEPETTO_API_KEY (`npx @gepetto/cli init` writes it to .env). */
 export function gepetto(): Gepetto {
   if (!client) client = new Gepetto();
   return client;
 }
 
+/** Is there an API key? Without one, the page shows how to get a free test key. */
 export function isConfigured(): boolean {
-  return !!process.env.GEPETTO_API_KEY?.trim();
+  return Boolean(process.env.GEPETTO_API_KEY?.trim());
 }
 
-/** Uploads are on when the developer has connected a Vercel Blob store (see README, "Your own photos"). */
+/** Uploads are on when a Vercel Blob store is connected (see README, "Your own photos"). */
 export function uploadsEnabled(): boolean {
-  return !!process.env.BLOB_READ_WRITE_TOKEN;
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
+/** One choice of a list: its id for the API, its name for people. */
+export interface Option {
+  id: string;
+  name: string;
+}
+
+/** The choices of each list of the panel, from the API. */
 export interface Lists {
+  /** Rooms that can be furnished whole. */
   autoRooms: Option[];
+  /** Rooms that can fill a painted zone. */
   zoneRooms: Option[];
+  /** All the rooms (Restyle). */
   allRooms: Option[];
   styles: Option[];
   furniture: Option[];
@@ -30,67 +42,86 @@ export interface Lists {
   floors: Option[];
 }
 
-export interface Option {
-  id: string;
-  name: string;
-}
-
-/** The valid ids of the tools, from the API (they change rarely: cached for an hour). */
+/** The valid ids of each list, from the API. They rarely change: cached for an hour. */
 export async function getLists(): Promise<Lists> {
-  'use cache';
-  cacheLife('hours');
-  const g = gepetto();
+  "use cache";
+  cacheLife("hours");
+
   const [rooms, styles, furniture, skies, surfaces] = await Promise.all([
-    g.listRooms(), g.listStyles(), g.listFurnitures(), g.listSkies(), g.listSurfaces(),
+    gepetto().listRooms(),
+    gepetto().listStyles(),
+    gepetto().listFurnitures(),
+    gepetto().listSkies(),
+    gepetto().listSurfaces(),
   ]);
-  const option = (item: { id: string; name: string; name_en?: string }) => ({ id: item.id, name: item.name_en || item.name });
+
+  // The English name when there is one (styles have one name, in French)
+  const toOption = (item: { id: string; name: string; name_en?: string }) => ({
+    id: item.id,
+    name: item.name_en || item.name,
+  });
+
   return {
-    autoRooms: rooms.filter((r) => r.modes.includes('auto')).map(option),
-    zoneRooms: rooms.filter((r) => r.modes.includes('zone')).map(option),
-    allRooms: rooms.map(option),
-    // Styles have one name, in French, in the API
-    styles: styles.map((s) => ({ id: s.id, name: s.name })),
-    furniture: Object.values(furniture).flat().map(option),
-    skies: skies.map(option),
-    walls: surfaces.walls.map(option),
-    floors: surfaces.floors.map(option),
+    autoRooms: rooms.filter((room) => room.modes.includes("auto")).map(toOption),
+    zoneRooms: rooms.filter((room) => room.modes.includes("zone")).map(toOption),
+    allRooms: rooms.map(toOption),
+    styles: styles.map(toOption),
+    // The furniture comes grouped by category: one list is enough here
+    furniture: Object.values(furniture).flat().map(toOption),
+    skies: skies.map(toOption),
+    walls: surfaces.walls.map(toOption),
+    floors: surfaces.floors.map(toOption),
   };
 }
 
 export interface AccountSummary {
-  keyType: 'test' | 'live';
-  /** Test key: renders left out of 200. */
+  keyType: "test" | "live";
+  /** With a test key: renders left out of 200. */
   testRendersLeft: number | null;
 }
 
 export async function getAccount(): Promise<AccountSummary> {
   const account = await gepetto().account();
+  const testRenders = account.test_renders;
   return {
     keyType: account.key_type,
-    testRendersLeft: account.test_renders ? account.test_renders.limit - account.test_renders.used : null,
+    testRendersLeft: testRenders ? testRenders.limit - testRenders.used : null,
   };
 }
 
 export interface RecentJob {
   id: string;
+  /** The API's name of the tool: "furnish", "surfaces"... */
   tool: string;
   output: string;
 }
 
-/** The latest successful renders of the key, newest first. */
+/** The latest successful renders made with this key, newest first. */
 export async function getRecent(): Promise<RecentJob[]> {
-  const jobs = await gepetto().listJobs({ status: 'success', limit: 12 });
-  return jobs.filter((j) => j.output).map((j) => ({ id: j.id, tool: j.tool, output: j.output as string }));
+  const jobs = await gepetto().listJobs({ status: "success", limit: 12 });
+  const recent: RecentJob[] = [];
+  for (const job of jobs) {
+    if (job.output) recent.push({ id: job.id, tool: job.tool, output: job.output });
+  }
+  return recent;
 }
 
-/** A GepettoError as JSON for the page: the code for the code, the message for the person. */
-export function errorResponse(e: unknown): Response {
-  if (e instanceof GepettoError) {
-    const message = e.code === 'timeout'
-      ? 'Still rendering after nearly 5 minutes. The render goes on: it will appear in Recent when it is done.'
-      : e.message;
-    return Response.json({ error: { code: e.code, message, param: e.param ?? null, jobId: e.jobId ?? null } }, { status: e.status ?? 504 });
+/** An error as JSON for the page: the code for the code, the message for the person. */
+export function errorResponse(error: unknown): Response {
+  if (error instanceof GepettoError) {
+    const message =
+      error.code === "timeout"
+        ? "Still rendering after nearly 5 minutes. The render goes on: it will appear in Recent when it is done."
+        : error.message;
+    return Response.json(
+      { error: { code: error.code, message, param: error.param ?? null } },
+      { status: error.status ?? 504 },
+    );
   }
-  console.error(e);
-  return Response.json({ error: { code: 'internal_error', message: 'Something went wrong on the server. Check its logs.', param: null, jobId: null } }, { status: 500 });
+
+  console.error(error);
+  return Response.json(
+    { error: { code: "internal_error", message: "Something went wrong on the server. Check its logs." } },
+    { status: 500 },
+  );
 }

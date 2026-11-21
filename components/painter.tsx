@@ -1,136 +1,207 @@
 "use client";
 
-// Paint a zone on the photo. What is painted becomes the mask: a black image with the zone in white, at the photo's
-// proportions, sent to the API as a data URL (no storage needed).
-import { useCallback, useEffect, useRef, type RefObject } from "react";
+// Paint a zone on the photo. What is painted becomes the mask sent to Gepetto: a black image with the zone in
+// white, at the proportions of the photo, as a PNG data URL. Nothing to host.
+import { useCallback, useEffect, useRef } from "react";
+import { Brush, Undo2 } from "lucide-react";
+import { photoLabelStyle } from "./ui";
 
 export interface Stroke {
   /** Brush diameter, as a fraction of the photo's width. */
   size: number;
-  /** Points, as fractions of the photo's width and height. */
+  /** The points, as fractions of the photo's width and height (from 0 to 1). */
   points: [number, number][];
 }
 
-const MAX_MASK_SIDE = 2048;
+/** The largest side of the mask: enough for any zone, and a light PNG. */
+const MASK_MAX_SIDE = 2048;
 
-function drawStrokes(ctx: CanvasRenderingContext2D, strokes: Stroke[], width: number, height: number, color: string) {
-  ctx.strokeStyle = color;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  for (const stroke of strokes) {
-    ctx.lineWidth = stroke.size * width;
-    ctx.beginPath();
-    stroke.points.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x * width, y * height) : ctx.lineTo(x * width, y * height)));
-    // A single click paints a dot
-    if (stroke.points.length === 1) ctx.lineTo(stroke.points[0][0] * width + 0.01, stroke.points[0][1] * height);
-    ctx.stroke();
-  }
-}
-
-/** The mask as a PNG data URL: black, the painted zone in white, at the photo's proportions (2048 px at most). */
-export function exportMask(strokes: Stroke[], photoWidth: number, photoHeight: number): string | null {
-  if (strokes.length === 0) return null;
-  const scale = Math.min(1, MAX_MASK_SIDE / Math.max(photoWidth, photoHeight));
+/** The mask: black, with the painted zone in white, at the proportions of the photo, as a PNG data URL. */
+export function exportMask(strokes: Stroke[], photo: { width: number; height: number }): string {
+  const scale = Math.min(1, MASK_MAX_SIDE / Math.max(photo.width, photo.height));
   const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(photoWidth * scale));
-  canvas.height = Math.max(1, Math.round(photoHeight * scale));
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  drawStrokes(ctx, strokes, canvas.width, canvas.height, "#fff");
+  canvas.width = Math.round(photo.width * scale);
+  canvas.height = Math.round(photo.height * scale);
+
+  const context = canvas.getContext("2d");
+  if (!context) return "";
+  context.fillStyle = "black";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  drawStrokes(context, strokes, canvas.width, canvas.height, "white");
   return canvas.toDataURL("image/png");
 }
 
-export function Painter({ strokesRef, version, brush, onStroke }: {
-  /** The strokes, kept by the page so that they survive a render. */
-  strokesRef: RefObject<Stroke[]>;
-  /** Changes when the strokes change from outside (undo, clear). */
-  version: number;
-  /** Brush diameter in screen pixels. */
+function drawStrokes(
+  context: CanvasRenderingContext2D,
+  strokes: Stroke[],
+  width: number,
+  height: number,
+  color: string,
+) {
+  context.strokeStyle = color;
+  context.lineCap = "round";
+  context.lineJoin = "round";
+
+  for (const stroke of strokes) {
+    context.lineWidth = stroke.size * width;
+    context.beginPath();
+    const [firstX, firstY] = stroke.points[0];
+    context.moveTo(firstX * width, firstY * height);
+    for (const [x, y] of stroke.points) context.lineTo(x * width, y * height);
+    // A click without moving paints a dot
+    if (stroke.points.length === 1) context.lineTo(firstX * width + 0.01, firstY * height);
+    context.stroke();
+  }
+}
+
+/** The painting layer over the photo, with its brush toolbar. */
+export function PaintLayer({ strokes, onStrokesChange, brush, onBrushChange, hint }: {
+  strokes: Stroke[];
+  onStrokesChange: (strokes: Stroke[]) => void;
+  /** Brush diameter, in pixels on screen. */
   brush: number;
-  onStroke: () => void;
+  onBrushChange: (size: number) => void;
+  hint: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
-  const drawing = useRef(false);
+  // The stroke being drawn: added to `strokes` when the pointer is released
+  const currentStroke = useRef<Stroke | null>(null);
 
+  // Draws the strokes, sharp on any screen
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const { width, height } = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
-      canvas.width = Math.round(width * dpr);
-      canvas.height = Math.round(height * dpr);
-    }
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, width, height);
-    drawStrokes(ctx, strokesRef.current, width, height, "#3b82f6");
-  }, [strokesRef]);
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
 
+    const { width, height } = canvas.getBoundingClientRect();
+    const density = window.devicePixelRatio || 1;
+    if (canvas.width !== Math.round(width * density)) {
+      canvas.width = Math.round(width * density);
+      canvas.height = Math.round(height * density);
+    }
+    context.setTransform(density, 0, 0, density, 0, 0);
+    context.clearRect(0, 0, width, height);
+
+    const allStrokes = currentStroke.current ? [...strokes, currentStroke.current] : strokes;
+    drawStrokes(context, allStrokes, width, height, "#3b82f6");
+  }, [strokes]);
+
+  // Redraw when the strokes change (undo, clear) and when the photo is resized
   useEffect(() => {
-    redraw();
     const canvas = canvasRef.current;
     if (!canvas) return;
+    redraw();
     const observer = new ResizeObserver(redraw);
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, [redraw, version]);
+  }, [redraw]);
 
-  const point = (e: React.PointerEvent<HTMLCanvasElement>): [number, number] => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    return [
-      Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)),
-      Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height)),
-    ];
-  };
+  /** Where the pointer is, as fractions of the photo's width and height. */
+  function pointOnPhoto(event: React.PointerEvent<HTMLCanvasElement>): [number, number] {
+    const box = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - box.left) / box.width;
+    const y = (event.clientY - box.top) / box.height;
+    return [Math.min(1, Math.max(0, x)), Math.min(1, Math.max(0, y))];
+  }
 
-  const moveCursor = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const cursor = cursorRef.current;
-    if (!cursor) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    cursor.style.transform = `translate(${e.clientX - rect.left - brush / 2}px, ${e.clientY - rect.top - brush / 2}px)`;
-    cursor.style.opacity = "1";
-  };
+  function startStroke(event: React.PointerEvent<HTMLCanvasElement>) {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const width = event.currentTarget.getBoundingClientRect().width;
+    currentStroke.current = { size: brush / width, points: [pointOnPhoto(event)] };
+    redraw();
+  }
+
+  function continueStroke(event: React.PointerEvent<HTMLCanvasElement>) {
+    moveBrushCircle(event);
+    if (!currentStroke.current) return;
+    currentStroke.current.points.push(pointOnPhoto(event));
+    redraw();
+  }
+
+  function endStroke() {
+    if (!currentStroke.current) return;
+    onStrokesChange([...strokes, currentStroke.current]);
+    currentStroke.current = null;
+  }
+
+  /** The circle that shows the size of the brush follows the pointer. */
+  function moveBrushCircle(event: React.PointerEvent<HTMLCanvasElement>) {
+    const circle = cursorRef.current;
+    if (!circle) return;
+    const box = event.currentTarget.getBoundingClientRect();
+    const x = event.clientX - box.left - brush / 2;
+    const y = event.clientY - box.top - brush / 2;
+    circle.style.transform = `translate(${x}px, ${y}px)`;
+    circle.style.opacity = "1";
+  }
+
+  function hideBrushCircle() {
+    if (cursorRef.current) cursorRef.current.style.opacity = "0";
+  }
 
   return (
-    <div className="absolute inset-0 touch-none">
-      {/* Strokes drawn opaque on a translucent canvas: where they cross, the colour does not get darker */}
-      <canvas
-        ref={canvasRef}
-        aria-label="Paint the zone on the photo"
-        className="absolute inset-0 size-full cursor-none opacity-[.42]"
-        onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId);
-          drawing.current = true;
-          const width = e.currentTarget.getBoundingClientRect().width;
-          strokesRef.current = [...strokesRef.current, { size: brush / width, points: [point(e)] }];
-          redraw();
-        }}
-        onPointerMove={(e) => {
-          moveCursor(e);
-          if (!drawing.current) return;
-          strokesRef.current[strokesRef.current.length - 1].points.push(point(e));
-          redraw();
-        }}
-        onPointerUp={() => {
-          if (!drawing.current) return;
-          drawing.current = false;
-          onStroke();
-        }}
-        onPointerLeave={() => {
-          if (cursorRef.current) cursorRef.current.style.opacity = "0";
-        }}
-      />
+    <>
+      <div className="absolute inset-0 touch-none">
+        {/* The strokes are opaque on a see-through canvas: where they cross, the colour stays the same */}
+        <canvas
+          ref={canvasRef}
+          aria-label="Paint the zone on the photo"
+          className="absolute inset-0 size-full cursor-none opacity-[.42]"
+          onPointerDown={startStroke}
+          onPointerMove={continueStroke}
+          onPointerUp={endStroke}
+          onPointerLeave={hideBrushCircle}
+        />
+        <div
+          ref={cursorRef}
+          aria-hidden
+          className="pointer-events-none absolute left-0 top-0 rounded-full border-[1.5px] border-white opacity-0 shadow-[0_0_0_1px_rgba(24,24,27,.3)]"
+          style={{ width: brush, height: brush }}
+        />
+      </div>
+
+      <span className={`${photoLabelStyle} left-3.5`}>
+        <Brush aria-hidden className="size-3.5" />
+        {hint}
+      </span>
+
       <div
-        ref={cursorRef}
-        aria-hidden
-        className="pointer-events-none absolute left-0 top-0 rounded-full border-[1.5px] border-white opacity-0 shadow-[0_0_0_1px_rgba(24,24,27,.3)]"
-        style={{ width: brush, height: brush }}
-      />
-    </div>
+        role="toolbar"
+        aria-label="Brush"
+        className="absolute bottom-4 left-1/2 flex h-11 -translate-x-1/2 items-center gap-1 rounded-[14px] bg-white pl-3.5 pr-1.5 shadow-[0_1px_2px_rgba(24,24,27,.08),0_10px_28px_rgba(24,24,27,.16)]"
+      >
+        <label htmlFor="brush" className="mr-1.5 text-[13px] font-medium text-ink-2">
+          Brush
+        </label>
+        <input
+          id="brush"
+          type="range"
+          min={10}
+          max={120}
+          value={brush}
+          onChange={(event) => onBrushChange(Number(event.target.value))}
+          className="brush-range mr-2 w-24 sm:w-30"
+        />
+        <span aria-hidden className="mx-1 h-5 w-px bg-line" />
+        <button
+          type="button"
+          onClick={() => onStrokesChange(strokes.slice(0, -1))}
+          disabled={strokes.length === 0}
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium disabled:text-ink-3"
+        >
+          <Undo2 aria-hidden className="size-4" />
+          Undo
+        </button>
+        <button
+          type="button"
+          onClick={() => onStrokesChange([])}
+          disabled={strokes.length === 0}
+          className="inline-flex h-8 items-center rounded-lg px-2.5 text-[13px] font-medium disabled:text-ink-3"
+        >
+          Clear
+        </button>
+      </div>
+    </>
   );
 }
