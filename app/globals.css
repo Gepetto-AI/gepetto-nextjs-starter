@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* One neutral palette: change --color-ink to rebrand the studio */
+@theme {
+  --color-canvas: #f4f4f2;
+  --color-line: #e6e5e1;
+  --color-line-soft: #efeeea;
+  --color-ink: #18181b;
+  --color-ink-2: #52525b;
+  --color-ink-3: #63636b;
+  --color-stage: #e7e6e2;
+  --color-paint: #3b82f6;
+  --color-danger: #b42318;
+  --color-ok: #15803d;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Section titles of the panel */
+.section-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+
+/* On/off switch: a real checkbox */
+.switch {
+  appearance: none;
+  flex: none;
+  position: relative;
+  width: 34px;
+  height: 20px;
+  margin: 0;
+  border-radius: 999px;
+  background: #d6d4cf;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.switch::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.25);
+  transition: transform 0.15s;
+}
+.switch:checked {
+  background: var(--color-ink);
+}
+.switch:checked::before {
+  transform: translateX(14px);
+}
+
+/* Brush size */
+.brush-range {
+  accent-color: var(--color-ink);
+}
