@@ -1,7 +1,8 @@
 "use client";
 
 // Under the photo: the latest renders, and what to do with a result.
-import { ArrowRight, Brush, Download, Link as LinkIcon } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, Brush, Check, Download, Link as LinkIcon } from "lucide-react";
 import type { RecentJob } from "@/lib/gepetto";
 import { buttonStyle, strongButtonStyle } from "./ui";
 
@@ -56,6 +57,24 @@ export function ResultActions({ output, onPaintAgain, onEdit }: {
   onPaintAgain: (() => void) | null;
   onEdit: () => void;
 }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copyLink() {
+    await navigator.clipboard.writeText(output);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
+  // The image is on another site: a plain link with `download` would only open it. Fetch it, then save it.
+  async function download() {
+    const image = await fetch(output).then((response) => response.blob());
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(image);
+    link.download = output.split("/").slice(-2).join("-"); // <job id>-output.jpg
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
   return (
     <div className="flex flex-wrap items-center gap-2">
       {onPaintAgain && (
@@ -64,14 +83,18 @@ export function ResultActions({ output, onPaintAgain, onEdit }: {
           Paint again
         </button>
       )}
-      <button type="button" onClick={() => navigator.clipboard.writeText(output)} className={buttonStyle}>
-        <LinkIcon aria-hidden className="size-[15px] text-ink-2" />
-        Copy link
+      <button type="button" onClick={copyLink} className={buttonStyle}>
+        {copied ? (
+          <Check aria-hidden className="size-[15px] text-ok" />
+        ) : (
+          <LinkIcon aria-hidden className="size-[15px] text-ink-2" />
+        )}
+        {copied ? "Copied" : "Copy link"}
       </button>
-      <a href={output} target="_blank" rel="noreferrer" download className={buttonStyle}>
+      <button type="button" onClick={download} className={buttonStyle}>
         <Download aria-hidden className="size-[15px] text-ink-2" />
         Download
-      </a>
+      </button>
       <button type="button" onClick={onEdit} className={strongButtonStyle}>
         Edit this result
         <ArrowRight aria-hidden className="size-[15px]" />
