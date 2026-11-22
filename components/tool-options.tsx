@@ -179,6 +179,13 @@ export function ToolOptions({ tool, choices, onChange, lists }: {
         </>
       );
 
+    case "finish":
+      return (
+        <SelectField id="finish" label="Finish" value={choices.finishId} onChange={(finishId) => set({ finishId })}>
+          <Options items={lists?.finishes} />
+        </SelectField>
+      );
+
     case "upscale":
       return (
         <Segmented

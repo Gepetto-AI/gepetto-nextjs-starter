@@ -12,7 +12,7 @@ const TOOL_NAMES: Record<string, string> = {
   furnish: "Furnish",
   sunshine: "Blue sky",
   "creative-redesign": "Restyle",
-  surfaces: "Walls and floors",
+  surfaces: "Walls, floors and finishes",
   upscale: "Upscale",
 };
 

@@ -1,8 +1,8 @@
-// The eight tools of the studio, and everything the panel lets you choose.
+// The nine tools of the studio, and everything the panel lets you choose.
 // What each tool sends to Gepetto is in lib/sdk-calls.ts.
 import type { Lists, Option } from "./gepetto";
 
-export type ToolId = "enhance" | "declutter" | "furnish" | "sunshine" | "restyle" | "walls" | "floor" | "upscale";
+export type ToolId = "enhance" | "declutter" | "furnish" | "sunshine" | "restyle" | "walls" | "floor" | "finish" | "upscale";
 
 /** The tools, in the order of the panel. */
 export const TOOLS: { id: ToolId; name: string }[] = [
@@ -13,6 +13,7 @@ export const TOOLS: { id: ToolId; name: string }[] = [
   { id: "restyle", name: "Restyle" },
   { id: "walls", name: "Repaint walls" },
   { id: "floor", name: "New floor" },
+  { id: "finish", name: "Finishes" },
   { id: "upscale", name: "Upscale" },
 ];
 
@@ -56,6 +57,9 @@ export interface Choices {
   floorType: string;
   includeBaseboard: boolean;
 
+  // Finishes: clean the floor or the pool, mow the lawn...
+  finishId: string;
+
   // Upscale
   resolution: "2k" | "4k";
 }
@@ -93,6 +97,8 @@ export function defaultChoices(lists: Lists | null): Choices {
     floorType: pick(lists?.floors, "parquet"),
     includeBaseboard: false,
 
+    finishId: pick(lists?.finishes, "clean_floor"),
+
     resolution: "4k",
   };
 }
@@ -128,6 +134,8 @@ export function buttonLabel(tool: ToolId, choices: Choices): string {
       return "Repaint the walls";
     case "floor":
       return "Change the floor";
+    case "finish":
+      return "Apply the finish";
     case "upscale":
       return `Upscale to ${choices.resolution.toUpperCase()}`;
   }
@@ -150,6 +158,8 @@ export function workingTitle(tool: ToolId, choices: Choices): string {
       return "Repainting the walls";
     case "floor":
       return "Changing the floor";
+    case "finish":
+      return "Applying the finish";
     case "upscale":
       return "Upscaling";
   }
@@ -176,6 +186,8 @@ export function workingDetail(tool: ToolId, choices: Choices, lists: Lists | nul
       return choices.wallType === "custom" ? choices.customWallColor : nameOf(lists?.walls, choices.wallType);
     case "floor":
       return nameOf(lists?.floors, choices.floorType);
+    case "finish":
+      return nameOf(lists?.finishes, choices.finishId);
     case "upscale":
       return choices.resolution.toUpperCase();
   }

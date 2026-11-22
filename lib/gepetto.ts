@@ -40,6 +40,7 @@ export interface Lists {
   skies: Option[];
   walls: Option[];
   floors: Option[];
+  finishes: Option[];
 }
 
 /** The valid ids of each list, from the API. They rarely change: cached for an hour. */
@@ -55,10 +56,10 @@ export async function getLists(): Promise<Lists> {
     gepetto().listSurfaces(),
   ]);
 
-  // The English name when there is one (styles have one name, in French)
+  // The English name when there is one (styles have one name, in French), without the emojis of some names
   const toOption = (item: { id: string; name: string; name_en?: string }) => ({
     id: item.id,
-    name: item.name_en || item.name,
+    name: (item.name_en || item.name).replace(/\s*\(?\p{Extended_Pictographic}+\)?/gu, "").trim(),
   });
 
   return {
@@ -71,6 +72,7 @@ export async function getLists(): Promise<Lists> {
     skies: skies.map(toOption),
     walls: surfaces.walls.map(toOption),
     floors: surfaces.floors.map(toOption),
+    finishes: surfaces.finishes.map(toOption),
   };
 }
 

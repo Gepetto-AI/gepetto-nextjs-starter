@@ -122,6 +122,12 @@ export function sdkCallFor(tool: ToolId, choices: Choices, url: string, mask: st
         },
       };
 
+    case "finish":
+      return {
+        method: "surfaces",
+        params: { url, surface: "finish", finishId: choices.finishId },
+      };
+
     case "upscale":
       return {
         method: "upscale",

@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/@gepetto/sdk)](https://www.npmjs.com/package/@gepetto/sdk)
 
-A real estate photo studio in one page, built with [`@gepetto/sdk`](https://www.npmjs.com/package/@gepetto/sdk): pick a photo, pick a tool, get the image. Enhance, declutter (the whole room, or only what you paint), furnish (the whole room, or a painted zone), blue sky, restyle, repaint the walls, change the floor, upscale.
+A real estate photo studio in one page, built with [`@gepetto/sdk`](https://www.npmjs.com/package/@gepetto/sdk): pick a photo, pick a tool, get the image. Enhance, declutter (the whole room, or only what you paint), furnish (the whole room, or a painted zone), blue sky, restyle, repaint the walls, change the floor, apply a finish (clean floor, clean pool, mowed lawn...), upscale.
 
 Clone it to see how the API fits in an app, or start your product from it: the design is neutral on purpose.
 
@@ -39,7 +39,7 @@ The other files:
 
 | File | What it does |
 | --- | --- |
-| [`lib/tools.ts`](lib/tools.ts) | The eight tools and everything the panel lets you choose |
+| [`lib/tools.ts`](lib/tools.ts) | The nine tools and everything the panel lets you choose |
 | [`lib/gepetto.ts`](lib/gepetto.ts) | The client, the lists of ids (rooms, styles, skies...), the account, the latest renders |
 | [`app/api/bootstrap/route.ts`](app/api/bootstrap/route.ts) | What the page needs to start |
 | [`app/api/upload/route.ts`](app/api/upload/route.ts) | Your own photos (optional, see below) |

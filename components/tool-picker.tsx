@@ -8,6 +8,7 @@ import {
   PaintRoller,
   Palette,
   Sofa,
+  Sparkles,
   WandSparkles,
   type LucideIcon,
 } from "lucide-react";
@@ -21,10 +22,11 @@ export const TOOL_ICONS: Record<ToolId, LucideIcon> = {
   restyle: Palette,
   walls: PaintRoller,
   floor: Grid2x2,
+  finish: Sparkles,
   upscale: Maximize2,
 };
 
-/** The eight tools: a grid on a computer, a row of chips on a phone. */
+/** The nine tools: a grid on a computer, a row of chips on a phone. */
 export function ToolPicker({ tool, onChange }: { tool: ToolId; onChange: (tool: ToolId) => void }) {
   return (
     <div className="-mx-[18px] flex gap-2 overflow-x-auto px-[18px] pb-1 lg:mx-0 lg:grid lg:grid-cols-2 lg:overflow-visible lg:px-0 lg:pb-0">
