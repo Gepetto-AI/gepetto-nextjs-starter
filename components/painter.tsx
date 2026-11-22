@@ -188,7 +188,7 @@ export function PaintLayer({ strokes, onStrokesChange, brush, onBrushChange, hin
           type="button"
           onClick={() => onStrokesChange(strokes.slice(0, -1))}
           disabled={strokes.length === 0}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium disabled:text-ink-3"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium enabled:hover:bg-canvas disabled:text-ink-3"
         >
           <Undo2 aria-hidden className="size-4" />
           Undo
@@ -197,7 +197,7 @@ export function PaintLayer({ strokes, onStrokesChange, brush, onBrushChange, hin
           type="button"
           onClick={() => onStrokesChange([])}
           disabled={strokes.length === 0}
-          className="inline-flex h-8 items-center rounded-lg px-2.5 text-[13px] font-medium disabled:text-ink-3"
+          className="inline-flex h-8 items-center rounded-lg px-2.5 text-[13px] font-medium enabled:hover:bg-canvas disabled:text-ink-3"
         >
           Clear
         </button>

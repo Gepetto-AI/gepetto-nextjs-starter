@@ -40,7 +40,9 @@ export function ToolPicker({ tool, onChange }: { tool: ToolId; onChange: (tool: 
             aria-pressed={selected}
             onClick={() => onChange(id)}
             className={`flex h-10 flex-none items-center gap-2.5 rounded-full border px-3.5 text-left text-sm font-medium lg:h-9 lg:rounded-[10px] lg:px-3 ${
-              selected ? "border-ink bg-[#fafaf9] shadow-[inset_0_0_0_.5px_#18181b]" : "border-line bg-white"
+              selected
+                ? "border-ink bg-[#fafaf9] shadow-[inset_0_0_0_.5px_#18181b]"
+                : "border-line bg-white transition-colors hover:border-[#d6d4cf] hover:bg-[#fafaf9]"
             }`}
           >
             <Icon

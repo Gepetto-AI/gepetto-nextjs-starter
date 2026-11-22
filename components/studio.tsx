@@ -306,7 +306,7 @@ export function Studio() {
       <footer className="flex h-11 flex-none items-center justify-end px-4 lg:px-6">
         <a
           href="https://gepettoapp.com"
-          className="inline-flex h-[30px] items-center gap-2 rounded-full border border-line bg-white pl-1.5 pr-3 text-[12.5px] text-ink-2"
+          className="inline-flex h-[30px] items-center gap-2 rounded-full border border-line bg-white pl-1.5 pr-3 text-[12.5px] text-ink-2 transition-colors hover:border-[#d6d4cf] hover:text-ink"
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- local logo */}
           <img src="/gepetto.png" alt="" className="size-[18px] rounded-[5px]" />

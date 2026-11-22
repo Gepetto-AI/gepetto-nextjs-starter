@@ -38,7 +38,7 @@ export function RecentRenders({ recent, highlighted, onPick }: {
               title={label}
               aria-label={label}
               onClick={() => onPick(job.output)}
-              className={`flex-none rounded-[9px] ${selected ? "outline-2 outline-offset-2 outline-ink" : ""}`}
+              className={`flex-none rounded-[9px] transition-opacity ${selected ? "outline-2 outline-offset-2 outline-ink" : "hover:opacity-80"}`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- renders served by Gepetto */}
               <img src={job.output} alt="" loading="lazy" className="size-12 rounded-[9px] object-cover lg:size-14" />

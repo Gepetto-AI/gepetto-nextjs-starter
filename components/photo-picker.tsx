@@ -47,7 +47,7 @@ export function PhotoPicker({ photo, onPick, uploads, urlError, onUrlError }: {
             aria-pressed={photo === null}
             onClick={() => onPick(null)}
             className={`flex aspect-square flex-col items-center justify-center gap-1.5 rounded-xl border bg-[#fafaf9] text-xs font-medium ${
-              photo === null ? `border-line ${selectedTile}` : "border-dashed border-[#cfcdc7]"
+              photo === null ? `border-line ${selectedTile}` : "border-dashed border-[#cfcdc7] hover:border-ink-3 hover:bg-white"
             }`}
           >
             <ImageUp aria-hidden className="size-5" strokeWidth={1.75} />
@@ -64,7 +64,7 @@ export function PhotoPicker({ photo, onPick, uploads, urlError, onUrlError }: {
               aria-label={sample.label}
               aria-pressed={selected}
               onClick={() => onPick({ url: sample.url, source: "sample" })}
-              className={`rounded-xl ${selected ? selectedTile : ""}`}
+              className={`rounded-xl transition-opacity ${selected ? selectedTile : "hover:opacity-80"}`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- remote thumbnails */}
               <img src={thumbnail(sample.url)} alt="" className="aspect-square w-full rounded-xl object-cover" />

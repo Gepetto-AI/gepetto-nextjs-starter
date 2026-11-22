@@ -17,7 +17,7 @@ export function RenderButton({ label, icon: Icon, working, disabled, onClick }: 
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-ink text-[15px] font-semibold text-white disabled:border disabled:border-line disabled:bg-canvas disabled:text-ink-2"
+      className="flex h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-ink text-[15px] font-semibold text-white transition-colors enabled:hover:bg-[#2e2e33] disabled:border disabled:border-line disabled:bg-canvas disabled:text-ink-2"
     >
       {working ? (
         "Working…"

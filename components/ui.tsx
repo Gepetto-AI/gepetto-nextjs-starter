@@ -7,11 +7,11 @@ import type { ApiError } from "@/lib/studio-api";
 
 /** The small white buttons under the photo (Copy link, Download...), for a <button> or a link. */
 export const buttonStyle =
-  "inline-flex h-9 items-center gap-2 rounded-[10px] border border-line bg-white px-3.5 text-[13px] font-medium";
+  "inline-flex h-9 items-center gap-2 rounded-[10px] border border-line bg-white px-3.5 text-[13px] font-medium transition-colors hover:border-[#d6d4cf] hover:bg-[#fafaf9]";
 
 /** The same, with a dark border: the action to take next. */
 export const strongButtonStyle =
-  "inline-flex h-9 items-center gap-2 rounded-[10px] border border-ink bg-white px-3.5 text-[13px] font-medium";
+  "inline-flex h-9 items-center gap-2 rounded-[10px] border border-ink bg-white px-3.5 text-[13px] font-medium transition-colors hover:bg-[#fafaf9]";
 
 /** The dark labels over the photo (Before, After, the size of the photo). */
 export const photoLabelStyle =
@@ -81,7 +81,7 @@ export function SelectField({ id, label, value, onChange, children }: {
         id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full min-w-0 appearance-none truncate rounded-[10px] border border-line bg-white pl-3 pr-8 text-sm text-ink outline-none focus-visible:border-ink"
+        className="h-10 w-full min-w-0 cursor-pointer appearance-none truncate rounded-[10px] border border-line bg-white pl-3 pr-8 text-sm text-ink outline-none transition-colors hover:border-[#d6d4cf] focus-visible:border-ink"
       >
         {children}
       </select>
@@ -97,7 +97,7 @@ export function SwitchRow({ label, checked, onChange }: {
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex h-10 cursor-pointer items-center justify-between gap-3 rounded-[10px] border border-line px-3 text-sm">
+    <label className="flex h-10 cursor-pointer items-center justify-between gap-3 rounded-[10px] border border-line px-3 text-sm transition-colors hover:bg-[#fafaf9]">
       <span>{label}</span>
       <input
         type="checkbox"

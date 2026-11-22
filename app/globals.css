@@ -25,6 +25,14 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
+/* Tailwind 4 leaves buttons with the default cursor: the hand shows what can be clicked */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 /* Section titles of the panel */
 .section-title {
   margin: 0;
