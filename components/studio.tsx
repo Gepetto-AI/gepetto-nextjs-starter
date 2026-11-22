@@ -258,6 +258,10 @@ export function Studio() {
                 onEdit={() => changePhoto({ url: result.output, source: "render" })}
               />
             )}
+            {/* A render picked in Recent is the photo now: it can still be copied or downloaded */}
+            {!result && photo?.source === "render" && (
+              <ResultActions output={photo.url} onPaintAgain={null} onEdit={null} />
+            )}
           </div>
         </main>
 

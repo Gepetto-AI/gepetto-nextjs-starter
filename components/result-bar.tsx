@@ -55,7 +55,8 @@ export function ResultActions({ output, onPaintAgain, onEdit }: {
   output: string;
   /** Only for the tools that use a painted zone. */
   onPaintAgain: (() => void) | null;
-  onEdit: () => void;
+  /** Null when the image is already the photo being edited. */
+  onEdit: (() => void) | null;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -95,10 +96,12 @@ export function ResultActions({ output, onPaintAgain, onEdit }: {
         <Download aria-hidden className="size-[15px] text-ink-2" />
         Download
       </button>
-      <button type="button" onClick={onEdit} className={strongButtonStyle}>
-        Edit this result
-        <ArrowRight aria-hidden className="size-[15px]" />
-      </button>
+      {onEdit && (
+        <button type="button" onClick={onEdit} className={strongButtonStyle}>
+          Edit this result
+          <ArrowRight aria-hidden className="size-[15px]" />
+        </button>
+      )}
     </div>
   );
 }
