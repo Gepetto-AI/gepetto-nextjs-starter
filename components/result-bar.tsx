@@ -17,19 +17,19 @@ const TOOL_NAMES: Record<string, string> = {
   upscale: "Upscale",
 };
 
-/** The latest renders of the key. Click one to keep editing it. */
+/** The latest renders of the key. Click one to open it, compared with its photo. */
 export function RecentRenders({ recent, highlighted, onPick }: {
   recent: RecentJob[];
   /** The images on screen: their thumbnail is outlined. */
   highlighted: (string | null)[];
-  onPick: (url: string) => void;
+  onPick: (job: RecentJob) => void;
 }) {
   return (
     <div className="flex min-w-0 items-center gap-3.5">
       <h2 className="section-title">Recent</h2>
       <div className="flex gap-2 overflow-x-auto p-1">
         {recent.slice(0, 6).map((job) => {
-          const label = `${TOOL_NAMES[job.tool] ?? job.tool}: keep editing this render`;
+          const label = `${TOOL_NAMES[job.tool] ?? job.tool}: open this render`;
           const selected = highlighted.includes(job.output);
           return (
             <button
@@ -37,7 +37,7 @@ export function RecentRenders({ recent, highlighted, onPick }: {
               type="button"
               title={label}
               aria-label={label}
-              onClick={() => onPick(job.output)}
+              onClick={() => onPick(job)}
               className={`flex-none rounded-[9px] transition-opacity ${selected ? "outline-2 outline-offset-2 outline-ink" : "hover:opacity-80"}`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- renders served by Gepetto */}

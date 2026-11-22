@@ -32,7 +32,7 @@ import { TOOL_ICONS, ToolPicker } from "./tool-picker";
 type RenderState =
   | { status: "idle" }
   | { status: "working"; tool: ToolId; title: string; detail: string; startedAt: number }
-  | { status: "done"; photoUrl: string; output: string; jobId: string; seconds: number }
+  | { status: "done"; photoUrl: string; output: string; jobId: string; seconds: number | null }
   | { status: "failed"; error: ApiError };
 
 // Errors about the key itself: the page then shows how to set it
@@ -142,6 +142,18 @@ export function Studio() {
     }
   }
 
+  /** A render of Recent opens like a fresh one: compared with its photo, with the same actions. */
+  function openRecent(job: RecentJob) {
+    // Gepetto keeps the photo each render was made from, next to the image: .../jobs/<id>/photo.png
+    const original = job.output.replace(/\/output\.\w+$/, "/photo.png");
+    if (original === job.output) {
+      changePhoto({ url: job.output, source: "render" });
+      return;
+    }
+    changePhoto({ url: original, source: "original" });
+    setRenderState({ status: "done", photoUrl: original, output: job.output, jobId: job.id, seconds: null });
+  }
+
   /** A new photo starts with nothing painted, and no result. */
   function changePhoto(next: Photo | null) {
     if (next?.url !== photo?.url) {
@@ -218,6 +230,10 @@ export function Studio() {
             photoSize={photoSize}
             onPhotoLoad={setPhotoSize}
             onPhotoError={() => {
+              // The original of a render could not be loaded: show the render alone
+              if (photo?.source === "original" && renderState.status === "done") {
+                changePhoto({ url: renderState.output, source: "render" });
+              }
               if (photo?.source === "url") {
                 setUrlError({ code: "image_unreachable", message: "This URL does not open as an image in the browser." });
               }
@@ -248,7 +264,7 @@ export function Studio() {
               <RecentRenders
                 recent={recent}
                 highlighted={[photo?.url ?? null, result ? result.output : null]}
-                onPick={(url) => changePhoto({ url, source: "render" })}
+                onPick={openRecent}
               />
             )}
             {result && (

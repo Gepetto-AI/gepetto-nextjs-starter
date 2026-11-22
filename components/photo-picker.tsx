@@ -9,8 +9,9 @@ import { ErrorLine } from "./ui";
 
 export interface Photo {
   url: string;
-  /** Where it comes from. The errors about a pasted URL are shown under the URL field. */
-  source: "sample" | "url" | "upload" | "render";
+  /** Where it comes from. The errors about a pasted URL are shown under the URL field.
+   * "original": the photo a render of Recent was made from. */
+  source: "sample" | "url" | "upload" | "render" | "original";
 }
 
 export function PhotoPicker({ photo, onPick, uploads, urlError, onUrlError }: {

@@ -34,7 +34,8 @@ export function RenderButton({ label, icon: Icon, working, disabled, onClick }: 
 /** The line under the button: the error, or how long the last image took, or a hint. */
 export function RenderStatus({ error, done, hint }: {
   error: ApiError | null;
-  done: { seconds: number; jobId: string } | null;
+  /** `seconds` is null for a render reopened from Recent. */
+  done: { seconds: number | null; jobId: string } | null;
   hint: string;
 }) {
   if (error) {
@@ -51,7 +52,7 @@ export function RenderStatus({ error, done, hint }: {
     return (
       <p className="mt-2 flex items-center justify-center gap-1.5 text-xs text-ink-3">
         <Check aria-hidden className="size-3.5 text-ok" strokeWidth={2.25} />
-        <span className="text-ink">Done in {done.seconds} s</span>
+        <span className="text-ink">{done.seconds === null ? "Done" : `Done in ${done.seconds} s`}</span>
         <span aria-hidden className="size-[3px] rounded-full bg-[#a1a1aa]" />
         <code className="truncate font-mono text-[11.5px]" title={done.jobId}>
           {shortId}
