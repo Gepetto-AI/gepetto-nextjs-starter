@@ -1,6 +1,6 @@
 # Photo Studio: a Next.js example of the Gepetto API
 
-[![npm](https://img.shields.io/npm/v/@gepetto/sdk)](https://www.npmjs.com/package/@gepetto/sdk)
+[![npm](https://img.shields.io/npm/v/@gepetto/sdk)](https://www.npmjs.com/package/@gepetto/sdk) [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FGepetto-AI%2Fgepetto-nextjs-starter&env=GEPETTO_API_KEY&envDescription=Your%20Gepetto%20API%20key.%20Free%20test%20key%3A%20npx%20%40gepetto%2Fcli%20login%2C%20then%20npx%20%40gepetto%2Fcli%20init&envLink=https%3A%2F%2Fdocs.gepettoapp.com&project-name=photo-studio&repository-name=photo-studio)
 
 A real estate photo studio in one page, built with [`@gepetto/sdk`](https://www.npmjs.com/package/@gepetto/sdk): pick a photo, pick a tool, get the image. Enhance, declutter (the whole room, or only what you paint), furnish (the whole room, or a painted zone), blue sky, restyle, repaint the walls, change the floor, apply a finish (clean floor, clean pool, mowed lawn...), upscale.
 
@@ -60,6 +60,10 @@ Gepetto takes photos by URL: upload them to your own storage first, then give th
 To let people upload their photos, connect a [Vercel Blob](https://vercel.com/docs/vercel-blob) store and set `BLOB_READ_WRITE_TOKEN`: an "Upload" tile appears, and you can drop a photo on the page. The browser sends the file straight to your store, and the studio gives its public URL to Gepetto. Another storage (S3, R2, Supabase...) works the same way: replace [`app/api/upload/route.ts`](app/api/upload/route.ts) with an upload that returns a public URL.
 
 ## Deploy
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FGepetto-AI%2Fgepetto-nextjs-starter&env=GEPETTO_API_KEY&envDescription=Your%20Gepetto%20API%20key.%20Free%20test%20key%3A%20npx%20%40gepetto%2Fcli%20login%2C%20then%20npx%20%40gepetto%2Fcli%20init&envLink=https%3A%2F%2Fdocs.gepettoapp.com&project-name=photo-studio&repository-name=photo-studio)
+
+The button copies this repository to your GitHub, asks for `GEPETTO_API_KEY` and puts the studio online. To let people send their own photos there, add a Vercel Blob store to the project (see "Your own photos").
 
 The render route waits for the image, usually 15 to 90 seconds: `maxDuration` is set to 300 s, the most a Vercel Hobby function can last. A longer render is not lost: it appears in Recent once done.
 
